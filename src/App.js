@@ -391,29 +391,28 @@ function Movie({movie, onSelect}){
   useEffect(function(){
    
     async function getMovieDetails() {
-      setIsLoading(true)
-       const res = await fetch(
-        `https://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
-        );
-       const data = await res.json();
-    setMovie(data);
-    setIsLoading(false);
-   
+      setIsLoading(true);
+      const res = await fetch(
+        `https://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}` // Ensure the URL uses HTTPS
+      );
+      const data = await res.json();
+      setMovie(data);
+      setIsLoading(false);
     }
-    getMovieDetails()
+    
+    getMovieDetails();
 
-  }, [selectedId, KEY])
+  }, [selectedId, KEY]);
     
-  useEffect(function() {
-    if(!title) return
-    document.title= `Move | ${title} `
-    
+useEffect(function() {
+  if (!title) return;
+  document.title = `Move | ${title}`;
+  
   return () => {
-    document.title ='usePopCorn'
+    document.title = 'usePopCorn';
     // console.log(`clean up run ${title}`)
-  }
-  },[title])
- 
+  };
+}, [title]);
   return (
   <div className="details">
   { isloading ? <Loader/> : 
