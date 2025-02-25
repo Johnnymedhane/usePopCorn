@@ -139,7 +139,7 @@ function handleDeleteMovie(id){
      return function () {
       controller.abort();
      }
-     },[query])
+     },[query, KEY])
     
     
   /*async function handleQuery() {
