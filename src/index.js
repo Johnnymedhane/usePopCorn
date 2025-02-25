@@ -5,19 +5,19 @@ import ReactDOM from 'react-dom/client';
 
 import StarRating from './starRating';
 
-function Test(){
-  const[movierate, setMovieRate] = useState(0)
-return(
-  <div>
-    <StarRating 
-    color="red" 
-    maxStars={5} 
-    size={15}
-     onSetRating={setMovieRate}/>
-    <p>This Movie was rated {movierate} stars</p>
-  </div>
-)
-}
+// function Test(){
+//   const[movierate, setMovieRate] = useState(0)
+// return(
+//   <div>
+//     <StarRating 
+//     color="red" 
+//     maxStars={5} 
+//     size={15}
+//      onSetRating={setMovieRate}/>
+//     <p>This Movie was rated {movierate} stars</p>
+//   </div>
+// )
+// }
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
