@@ -1,23 +1,21 @@
-import { useState, useEffect,useRef } from "react";
+import { useState, useEffect } from "react";
 import StarRating from "./starRating";
-import { useMovies } from "./useMovies";
-import { useLocalStorageState } from "./useLocalStorageState";
-import { useCloseMove } from "./useKey";
+
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
  
+const KEY= 'eeae3065';
 
- const KEY = 'eeae3065';
 
 export default function App() {
-const [query, setQuery]= useState("")
-
-const [selectedId, setSelectedId] = useState(null)
-
-const {movies, isLoading, error} = useMovies(query);
-  
-  const [watched, setWatched] = useLocalStorageState([], 'watched');
+    const [query, setQuery]= useState("")
+    const [movies, setMovies] = useState([]);
+    const [watched, setWatched] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("")
+    const [selectedId, setSelectedId] = useState(null)
+    
 
 function handleSelect(id){
   setSelectedId(selectedId => selectedId === id ? null: id);
@@ -29,52 +27,134 @@ function handleCloseMovie(){
  }
 
  function handleAddWatch(movie){
-   setWatched(watched => [...watched, movie])
-  //  localStorage.setItem('watched', JSON.stringify([...watched, movie]))
+  setWatched(watched => [...watched, movie])
  
 }
 
 function handleDeleteMovie(id){
    setWatched(watched => watched.filter(movie => movie.imdbID !==id))
-}
- 
- 
+  }
+     useEffect( function () {
+      const controller = new AbortController();
+       async function fetchMovies() {
+       try { 
+        setIsLoading(true);
+        setError("")
+       const res = await fetch(
+        `https://www.omdbapi.com/?apikey=${KEY}&s=${query}` , 
+          {signal: controller.signal}
+        );
+
+        if (!res.ok) 
+          throw new Error("Something went wrong with fetching movies");
+
+      const data = await res.json();
+       if(data.Response === "False")
+          throw new Error("Movie not found");
+
+       setMovies(data.Search);
+      setError("")
+      
+
+    } catch (err) {
+      
+      if(err.name !== 'abortError'){
+        console.log(err.message);
+        setError(err.message)
+      }
+     } finally{
+        setIsLoading(false)
+       }
+      }
+     if(query.length < 3){
+      setError("")
+      setMovies([])
+      return
+     }
+     handleCloseMovie();
+     fetchMovies();
+
+     return function () {
+      controller.abort();
+     }
+     },[query, KEY])
+    
+    
+  /*async function handleQuery() {
+    
+    try { 
+    setIsLoading(true);
+    setError("")
+    const res = await fetch(
+    `http://www.omdbapi.com/?apikey=${KEY}&s=${query}` 
+    );
+
+    if (!res.ok) 
+      throw new Error("Something went wrong with fetching movies");
+
+  const data = await res.json();
+    if(data.Response === "False")
+      throw new Error("Movie not found");
+
+    setMovies(data.Search);
+  setError("")
   
 
-  return (
-  <>
-  <NavBar>
-    <Logo/>
-    <Search query={query} setQuery={setQuery} />
-      <NumResult movies={movies}/> 
-  </NavBar>
-  <Main>
+ } catch (err) {
+      
+      if(err.name !== 'abortError'){
+        console.log(err.message);
+        setError(err.message)
+      }
+     } finally{
+        setIsLoading(false)
+       }
+       if(query.length < 3){
+        setError("")
+        setMovies([])
+        return
+       }
   
-    <Box movies={movies}>
-      {isLoading && <Loader />}
-      {!isLoading && !error && <MoviesList movies={movies} onSelect={handleSelect} onAddWatched={handleAddWatch} />}
-      { error && <ErrorMessage message ={error}/>  }
-    </Box>
-  <Box>
-    {selectedId ? (
-    <MovieDetails selectedId={selectedId} 
-    onCloseMovie={handleCloseMovie}
-    onAddWatched={handleAddWatch}
-    watched={watched}
-    /> 
-    ) : (
-    <>
-    <WatchedSummery watched={watched} />
-      <WatchedMoviesList watched={watched} 
-      onDeleteWatched={handleDeleteMovie}/>
-      </>
-      )}
-  </Box>
-  </Main>
-  </>
-  )
-}
+       handleCloseMovie();
+      
+      }
+  */
+     
 
+        return (
+        <>
+        <NavBar>
+          <Logo/>
+          <Search query={query} setQuery={setQuery} />
+            <NumResult movies={movies}/> 
+        </NavBar>
+        <Main>
+        
+          <Box movies={movies}>
+            {isLoading && <Loader />}
+            {!isLoading && !error && <MoviesList movies={movies} onSelect={handleSelect} onAddWatched={handleAddWatch} />}
+            { error && <ErrorMessage message ={error}/>  }
+          </Box>
+        <Box>
+          {selectedId ? (
+          <MovieDetails selectedId={selectedId} 
+          onCloseMovie={handleCloseMovie}
+          onAddWatched={handleAddWatch}
+          watched={watched}
+          /> 
+          ) : (
+          <>
+          <WatchedSummery watched={watched} />
+            <WatchedMoviesList watched={watched} 
+            onDeleteWatched={handleDeleteMovie}/>
+            </>
+            )}
+        </Box>
+        </Main>
+        </>
+        )
+      }
+      
 function Loader() {
   return <p className="loader"> loading... </p>
 }
@@ -102,24 +182,18 @@ function Logo(){
   )
 }
 
-function Search({ query, setQuery }) {
-  const inputEl = useRef(null);
-
-  useCloseMove('Enter', () => {
-    if (document.activeElement === inputEl.current) return;
-    inputEl.current.focus();
-    setQuery('')
-  });
-  
- 
+function Search({query, setQuery}) {
+  // function handleSearchInput(e){
+  //   setQuery(e.target.value)
+  //    onSearchQuery()
+  //  }
   return(
     <input
           className="search"
           type="text"
           placeholder="Search movies..."
           value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      ref={inputEl}
+          onChange={(e) => setQuery(e.target.value)}
         />
       )
     }
@@ -205,22 +279,11 @@ function Movie({movie, onSelect}){
  function MovieDetails({selectedId, onCloseMovie, onAddWatched, watched}){
   const [movie, setMovie] = useState({});
   const [isloading, setIsLoading] = useState(false);
-   const [userRating, setUserRating] = useState('')
-
-
-   
-   const countRef = useRef(0);
-   useEffect(() => {
-    if(userRating)countRef.current = countRef.current ++;
-   console.log(countRef.current)
-   }, [userRating]
-   )
-  
+  const [userRating, setUserRating] = useState('')
 
   const isWatched= watched.map((movie) => movie.imdbID).includes(selectedId);
 
-   const watchedUserRating = watched.find(movie => movie.imdbID === selectedId)?.userRating;
-
+  const watchedUserRating = watched.find(movie => movie.imdbID===selectedId)?.userRating
   const {
     Title: title, 
     Year: year,
@@ -233,24 +296,9 @@ function Movie({movie, onSelect}){
      Director: director, 
      Genre: genre,} = movie;
 
-   
-        //  if(imdbRating > 8) return <p>🔥</p>
-   //  if(imdbRating > 8) [isTOP, setIsTOP] = useState(true);
-   
-  //  const [isTOP, setIsTOP] = useState(imdbRating > 8);
-  //  console.log(isTOP) it will run only in the intial render and
-   // stay fales forever if we don't update it.
-   
- //  useEffect(function () {
-  //    setIsTOP(imdbRating > 8)
-   //  }, [imdbRating])
-   
-   const isTop = imdbRating > 8;
-   console.log(isTop)
-   //  it will run every time the component re-renders
-   
-  //  const [avgRating, setAvgRating] = useState(0);
-   
+  
+
+
      function handleAdd() {
       const newWatchedMovie = {
         imdbID: selectedId,
@@ -260,19 +308,27 @@ function Movie({movie, onSelect}){
         imdbRating: Number(imdbRating),
         runtime: Number(runtime.split('').at(0)),
         userRating,
-        countRatingDecision: countRef.current,
       }
       onAddWatched(newWatchedMovie);
-        onCloseMovie()
-      //  setAvgRating(Number(imdbRating))
-      //  setAvgRating((avgRating) => (avgRating + userRating) / 2)
-     
+      onCloseMovie()
      }
+
+   useEffect(function() {
+    function callBack(e) {
+      if(e.code==="Escape"){
+        onCloseMovie();
+        
+      }
+    }
+    document.addEventListener('keydown', callBack
+    )
+    return function(){
+      document.removeEventListener('keydown', callBack)
+    }
+   }, [onCloseMovie])
    
-   useCloseMove('Escape', onCloseMovie);
+  useEffect(function(){
    
-   useEffect(
-     function () {
     async function getMovieDetails() {
       setIsLoading(true);
       const res = await fetch(
@@ -296,8 +352,6 @@ useEffect(function() {
     // console.log(`clean up run ${title}`)
   };
 }, [title]);
-   
-   
   return (
   <div className="details">
   { isloading ? <Loader/> : 
@@ -318,7 +372,7 @@ useEffect(function() {
         {imdbRating} IMDB rating</p>
       </div>
     </header>
-          {/* <p>{avgRating}</p> */}
+ 
     <section>
       <div className="rating">
      {!isWatched?
